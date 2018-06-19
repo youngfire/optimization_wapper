@@ -1,23 +1,19 @@
 import sys
 import mosek
 import mosek_g
-# Since the actual value of Infinity is ignores, we define it solely
-# for symbolic purposes:
 
 
 
-class mosek_integerp(object):
+class mosek_linearp(object):
     def __init__(self, params):
         self._INF = mosek_g.INF
         self.C_obj = params['C_obj']
-        self.A_con = list(map(list, zip(*params['A_con'])))
         self.buc = params['buc']
         self.blc = params['blc']
         self.bux = params['bux']
         self.blx = params['blx']
-        self.initial = params.get('initial', None)
-        self.minimize = params.get('minimize', True)
-        self.integ_index = params.get('integ_index', [])
+        self.A_con = list(map(list, zip(*params['A_con'])))
+        self.minimize = params['minimize']
         self.silent = params.get('silent', True)
         self.bkc = []
         self.bkx = []
@@ -27,14 +23,12 @@ class mosek_integerp(object):
         self.numvar = len(self.bux)
         self.xx = None
         self.opti = None
-        self.max_time = params.get('max_time', 60)
-        
 
     def streamprinter(self, text):
         sys.stdout.write(text)
         sys.stdout.flush()
 
-    def fit(self, ):
+    def fit(self):
         with mosek.Env() as env:
             with env.Task(0, 0) as task:
                 if self.silent is False:
@@ -61,7 +55,6 @@ class mosek_integerp(object):
                         self.bkx.append(mosek.boundkey.up)
                     elif i == j and i > -self._INF and j < self._INF:
                         self.bkx.append(mosek.boundkey.fx)
-
                 for A_vec in self.A_con:
                     asub_tmp = []
                     aval_tmp = []
@@ -71,10 +64,8 @@ class mosek_integerp(object):
                             aval_tmp.append(float(elm))
                     self.asub.append(asub_tmp)
                     self.aval.append(aval_tmp)
-
                 task.appendcons(self.numcon)
                 task.appendvars(self.numvar)
-
                 for i in range(self.numvar):
                     # Set the linear term c_i in the objective.
                     task.putcj(i, self.C_obj[i])
@@ -84,73 +75,54 @@ class mosek_integerp(object):
                     # Input column i of A
                     task.putacol(i, self.asub[i], self.aval[i])
 
+                # Set the bounds on constraints.
+                # blc[i] <= constraint_i <= buc[i]
                 for i in range(self.numcon):
                     task.putconbound(i, self.bkc[i], self.blc[i], self.buc[i])
 
+                # Input the objective sense (minimize/maximize)
                 if self.minimize is True:
                     task.putobjsense(mosek.objsense.minimize)
                 else:
                     task.putobjsense(mosek.objsense.maximize)
-
-                # Define variables to be integers
-                # A list of variable indexes for which the variable type should be changed
-                if len(self.integ_index)>0:
-                    task.putvartypelist(self.integ_index, [mosek.variabletype.type_int] * len(self.integ_index))
-                if self.initial:
-                    # Construct an initial feasible solution from the
-                    # values of the integer valuse specified
-                    task.putintparam(mosek.iparam.mio_construct_sol, mosek.onoffkey.on)
-                    # Assign values 0,2,0 to integer variables. Important to
-                    # assign a value to all integer constrained variables.
-                    task.putxxslice(mosek.soltype.itg, 0, len(self.initial), self.initial)
-                # Set max solution time 
-                task.putdouparam(mosek.dparam.mio_max_time, self.max_time);
-
+                # Solve the problem
                 task.optimize()
 
                 task.solutionsummary(mosek.streamtype.msg)
-                prosta = task.getprosta(mosek.soltype.itg)
-                solsta = task.getsolsta(mosek.soltype.itg)
 
+                solsta = task.getsolsta(mosek.soltype.bas)
                 result = "Do not finished."
-                if solsta in [mosek.solsta.integer_optimal, mosek.solsta.near_integer_optimal]:
+                if (solsta == mosek.solsta.optimal or solsta == mosek.solsta.near_optimal):
                     self.xx = [0.] * self.numvar
-                    task.getxx(mosek.soltype.itg, self.xx)
-                    print("Optimal solution: %s" % self.xx)
+                    task.getxx(mosek.soltype.bas, self.xx)
                     result = {"x":self.xx}
+                    print("Optimal solution: ", self.xx)
                     return 0, result
-                elif solsta == mosek.solsta.dual_infeas_cer:
-                    result = "Primal or dual infeasibility."
-                elif solsta == mosek.solsta.prim_infeas_cer:
-                    result = "Primal or dual infeasibility."
-                elif solsta == mosek.solsta.near_dual_infeas_cer:
-                    result = "Primal or dual infeasibility."
-                elif solsta == mosek.solsta.near_prim_infeas_cer:
-                    result = "Primal or dual infeasibility."
-                elif mosek.solsta.unknown:
-                    if prosta == mosek.prosta.prim_infeas_or_unbounded:
-                        result = "Problem status Infeasible or unbounded."
-                    elif prosta == mosek.prosta.prim_infeas:
-                        result = "Problem status Infeasible."
-                    elif prosta == mosek.prosta.unkown:
-                        result = "Problem status unkown."
-                    else:
-                        result = "Other problem status."
+                elif (solsta == mosek.solsta.dual_infeas_cer or \
+                      solsta == mosek.solsta.prim_infeas_cer or \
+                      solsta == mosek.solsta.near_dual_infeas_cer or \
+                      solsta == mosek.solsta.near_prim_infeas_cer):
+                    result = "Primal or dual infeasibility certificate found."
+                elif solsta == mosek.solsta.unknown:
+                    result = "Unknown solution status"
                 else:
-                    result = "Other solution sta."
+                    result = "Other solution status"
                 print(result)
                 return -1, result
 
-if __name__ == '__main__':
-    params = {"C_obj"  : [7,10,1,5],
-              "A_con"  : [[1,1,1,1]],
-              "blc"  : [-mosek_g.INF],
-              "buc"  : [2.5],
+
+def main():
+    params = {"C_obj"  : [3,1,5,1],
+              "A_con"  : [[3,1,2,0],[2,1,3,1],[0,2,0,3]],
+              "blc"  : [30,15,-mosek_g.INF],
+              "buc"  : [30,mosek_g.INF,25],
               "blx"  : [0,0,0,0],
-              "bux"  : [mosek_g.INF, mosek_g.INF,mosek_g.INF,mosek_g.INF],
+              "bux"  : [mosek_g.INF,10,mosek_g.INF,mosek_g.INF],
               "minimize" :False,
-              "integ_index" :[0,1,2],
               "silent": False
             }
-    a = mosek_integerp(params)
-    a.fit()
+    pro = mosek_linearp(params)
+    pro.fit()
+
+if __name__ == '__main__':
+    main()
