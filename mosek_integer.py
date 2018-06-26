@@ -148,14 +148,14 @@ class mosek_integerp(object):
 
 def main():
     ans = "[0.0, 2.0, 0.0, 0.5]"
-    params = {"C_obj"  : [7,10,1,5],
-              "A_con"  : [[1,1,1,1]],
-              "blc"  : [-mosek_g.INF],
-              "buc"  : [2.5],
-              "blx"  : [0,0,0,0],
-              "bux"  : [mosek_g.INF, mosek_g.INF,mosek_g.INF,mosek_g.INF],
+    params = {"C_obj"  : [7, 10, 1, 5], 
+              "A_con"  : [[1, 1, 1, 1]], 
+              "blc"  : [-mosek_g.INF], 
+              "buc"  : [2.5], 
+              "blx"  : [0, 0, 0, 0], 
+              "bux"  : [mosek_g.INF, mosek_g.INF, mosek_g.INF, mosek_g.INF],
               "minimize" :False,
-              "integ_flag" :[1,1,1,0],
+              "integ_flag" :[1, 1, 1, 0],
               "silent": True,
             }
     pro = mosek_integerp(params)

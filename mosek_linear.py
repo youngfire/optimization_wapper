@@ -115,13 +115,13 @@ def main():
 
     ans = "[0.0, 0.0, 15.0, 8.333333333333334]"
 
-    params = {"C_obj"  : [3,1,5,1],
-              "A_con"  : [[3,1,2,0],[2,1,3,1],[0,2,0,3]],
-              "blc"  : [30,15,-mosek_g.INF],
-              "buc"  : [30,mosek_g.INF,25],
-              "blx"  : [0,0,0,0],
-              "bux"  : [mosek_g.INF,10,mosek_g.INF,mosek_g.INF],
-              "minimize" :False,
+    params = {"C_obj"  : [3, 1, 5, 1], 
+              "A_con"  : [[3, 1, 2, 0], [2, 1, 3, 1], [0, 2, 0, 3]], 
+              "blc"  : [30, 15, -mosek_g.INF], 
+              "buc"  : [30, mosek_g.INF, 25], 
+              "blx"  : [0, 0, 0, 0], 
+              "bux"  : [mosek_g.INF, 10, mosek_g.INF, mosek_g.INF], 
+              "minimize" :False, 
               "silent": False
             }
     pro = mosek_linearp(params)
