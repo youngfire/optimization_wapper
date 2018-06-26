@@ -96,7 +96,7 @@ class mosek_linearp(object):
                     self.xx = [0.] * self.numvar
                     task.getxx(mosek.soltype.bas, self.xx)
                     result = {"x":self.xx}
-                    print("Optimal solution: ", self.xx)
+                    print("Optimal solution")
                     return 0, result
                 elif (solsta == mosek.solsta.dual_infeas_cer or \
                       solsta == mosek.solsta.prim_infeas_cer or \
@@ -112,6 +112,9 @@ class mosek_linearp(object):
 
 
 def main():
+
+    ans = "[0.0, 0.0, 15.0, 8.333333333333334]"
+
     params = {"C_obj"  : [3,1,5,1],
               "A_con"  : [[3,1,2,0],[2,1,3,1],[0,2,0,3]],
               "blc"  : [30,15,-mosek_g.INF],
@@ -122,7 +125,11 @@ def main():
               "silent": False
             }
     pro = mosek_linearp(params)
-    pro.fit()
+
+    code, result = pro.fit()
+
+    if code == 0:
+        print(result["x"])
 
 if __name__ == '__main__':
     main()

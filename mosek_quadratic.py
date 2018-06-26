@@ -5,7 +5,7 @@ import mosek_g
 # for symbolic purposes:
 
 
-class mosek_integerp(object):
+class mosek_quadraticp(object):
 
 	def __init__(self, params):
 	    self._INF = mosek_g.INF
@@ -92,8 +92,6 @@ class mosek_integerp(object):
 				for i in range(self.numcon):
 				    task.putbound(mosek.accmode.con, i, self.bkc[i], self.blc[i], self.buc[i])
 
-				
-
 				# Set up and input quadratic objective
 				self.qsubi = []
 				self.qsubj = []
@@ -104,7 +102,6 @@ class mosek_integerp(object):
 							self.qsubi.append(i)
 							self.qsubj.append(j)
 							self.qval.append(self.Q_obj[i][j])
-				print(self.qsubi, self.qsubj, self.qval)
 				task.putqobj(self.qsubi, self.qsubj, self.qval)
 
 				for k in range(0, self.numcon):
@@ -118,7 +115,6 @@ class mosek_integerp(object):
 								self.qsubi.append(i)
 								self.qsubj.append(j)
 								self.qval.append(Q_con_k[i][j])
-					print(self.qsubi, self.qsubj, self.qval)
 					task.putqconk(k, self.qsubi, self.qsubj, self.qval)
 
 
@@ -138,7 +134,7 @@ class mosek_integerp(object):
 				result = "Do not finished."
 				if solsta == mosek.solsta.optimal or solsta == mosek.solsta.near_optimal:
 					result = {"x": self.xx}
-					print("Optimal solution: ", self.xx)
+					print("Optimal solution")
 					return 0, result
 				elif solsta == mosek.solsta.dual_infeas_cer:
 					result = "Primal or dual infeasibility.\n"
@@ -155,8 +151,8 @@ class mosek_integerp(object):
 				print(result)
 				return -1, result
 
-if __name__ == '__main__':
 
+def main():
 	ans = "[0.4488485199618974, 0.9319361480448437, 0.6741131920778094]"
 
 
@@ -175,6 +171,19 @@ if __name__ == '__main__':
               "minimize" :True,
               "silent": False
             }
-	a = mosek_integerp(params)
-	a.fit()
+    
+
+	pro = mosek_quadraticp(params)
+
+	code, result = pro.fit()
+
+	if code == 0:
+	    print(result["x"])
+
+
+if __name__ == '__main__':
+	main()
+
+
+
 

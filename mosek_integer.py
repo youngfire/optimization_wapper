@@ -17,7 +17,7 @@ class mosek_integerp(object):
         self.blx = params['blx']
         self.initial = params.get('initial', None)
         self.minimize = params.get('minimize', True)
-        self.integ_index = params.get('integ_index', [])
+        self.integ_flag = params.get('integ_flag', [])
         self.silent = params.get('silent', True)
         self.bkc = []
         self.bkx = []
@@ -94,8 +94,12 @@ class mosek_integerp(object):
 
                 # Define variables to be integers
                 # A list of variable indexes for which the variable type should be changed
-                if len(self.integ_index)>0:
-                    task.putvartypelist(self.integ_index, [mosek.variabletype.type_int] * len(self.integ_index))
+                if sum(self.integ_flag)>0:
+                    integ_index = []
+                    for i, flag in enumerate(self.integ_flag, start=0):
+                        if flag > 0:
+                            integ_index.append(i)
+                    task.putvartypelist(integ_index, [mosek.variabletype.type_int] * len(integ_index))
                 if self.initial:
                     # Construct an initial feasible solution from the
                     # values of the integer valuse specified
@@ -116,7 +120,7 @@ class mosek_integerp(object):
                 if solsta in [mosek.solsta.integer_optimal, mosek.solsta.near_integer_optimal]:
                     self.xx = [0.] * self.numvar
                     task.getxx(mosek.soltype.itg, self.xx)
-                    print("Optimal solution: %s" % self.xx)
+                    print("Optimal solution")
                     result = {"x":self.xx}
                     return 0, result
                 elif solsta == mosek.solsta.dual_infeas_cer:
@@ -141,7 +145,9 @@ class mosek_integerp(object):
                 print(result)
                 return -1, result
 
-if __name__ == '__main__':
+
+def main():
+    ans = "[0.0, 2.0, 0.0, 0.5]"
     params = {"C_obj"  : [7,10,1,5],
               "A_con"  : [[1,1,1,1]],
               "blc"  : [-mosek_g.INF],
@@ -149,8 +155,15 @@ if __name__ == '__main__':
               "blx"  : [0,0,0,0],
               "bux"  : [mosek_g.INF, mosek_g.INF,mosek_g.INF,mosek_g.INF],
               "minimize" :False,
-              "integ_index" :[0,1,2],
-              "silent": False
+              "integ_flag" :[1,1,1,0],
+              "silent": True,
             }
-    a = mosek_integerp(params)
-    a.fit()
+    pro = mosek_integerp(params)
+    code, result = pro.fit()
+    if code == 0:
+        print(result["x"])
+
+
+if __name__ == '__main__':
+    main()
+    
