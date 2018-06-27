@@ -25,10 +25,8 @@ class mosek_integerp(object):
         self.aval = []
         self.numcon = len(self.buc)
         self.numvar = len(self.bux)
-        self.xx = None
-        self.opti = None
         self.max_time = params.get('max_time', 60)
-        
+        self.result = {"x": None, "obj": None, "msg": "Do not finished.", "code":-1}
 
     def streamprinter(self, text):
         sys.stdout.write(text)
@@ -116,34 +114,33 @@ class mosek_integerp(object):
                 prosta = task.getprosta(mosek.soltype.itg)
                 solsta = task.getsolsta(mosek.soltype.itg)
 
-                result = "Do not finished."
                 if solsta in [mosek.solsta.integer_optimal, mosek.solsta.near_integer_optimal]:
-                    self.xx = [0.] * self.numvar
-                    task.getxx(mosek.soltype.itg, self.xx)
-                    print("Optimal solution")
-                    result = {"x":self.xx}
-                    return 0, result
+                    self.result["x"] = [0.] * self.numvar
+                    task.getxx(mosek.soltype.itg, self.result["x"])
+                    self.result["obj"] = task.getprimalobj(mosek.soltype.itg)
+                    self.result["code"] = 0
+                    self.result["msg"] = "Optimal solution"
                 elif solsta == mosek.solsta.dual_infeas_cer:
-                    result = "Primal or dual infeasibility."
+                    self.result["msg"] = "Primal or dual infeasibility."
                 elif solsta == mosek.solsta.prim_infeas_cer:
-                    result = "Primal or dual infeasibility."
+                    self.result["msg"] = "Primal or dual infeasibility."
                 elif solsta == mosek.solsta.near_dual_infeas_cer:
-                    result = "Primal or dual infeasibility."
+                    self.result["msg"] = "Primal or dual infeasibility."
                 elif solsta == mosek.solsta.near_prim_infeas_cer:
-                    result = "Primal or dual infeasibility."
+                    self.result["msg"] = "Primal or dual infeasibility."
                 elif mosek.solsta.unknown:
                     if prosta == mosek.prosta.prim_infeas_or_unbounded:
-                        result = "Problem status Infeasible or unbounded."
+                        self.result["msg"] = "Problem status Infeasible or unbounded."
                     elif prosta == mosek.prosta.prim_infeas:
-                        result = "Problem status Infeasible."
+                        self.result["msg"] = "Problem status Infeasible."
                     elif prosta == mosek.prosta.unkown:
-                        result = "Problem status unkown."
+                        self.result["msg"] = "Problem status unkown."
                     else:
-                        result = "Other problem status."
+                        self.result["msg"] = "Other problem status."
                 else:
-                    result = "Other solution sta."
-                print(result)
-                return -1, result
+                    self.result["msg"] = "Other solution sta."
+                print(self.result["msg"])
+                return self.result["code"], self.result
 
 
 def main():
@@ -161,7 +158,7 @@ def main():
     pro = mosek_integerp(params)
     code, result = pro.fit()
     if code == 0:
-        print(result["x"])
+        print(result)
 
 
 if __name__ == '__main__':

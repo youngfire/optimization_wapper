@@ -21,8 +21,7 @@ class mosek_linearp(object):
         self.aval = []
         self.numcon = len(self.buc)
         self.numvar = len(self.bux)
-        self.xx = None
-        self.opti = None
+        self.result = {"x": None, "obj": None, "msg": "Do not finished.", "code":-1}
 
     def streamprinter(self, text):
         sys.stdout.write(text)
@@ -89,26 +88,25 @@ class mosek_linearp(object):
                 task.optimize()
 
                 task.solutionsummary(mosek.streamtype.msg)
-
                 solsta = task.getsolsta(mosek.soltype.bas)
-                result = "Do not finished."
+
                 if (solsta == mosek.solsta.optimal or solsta == mosek.solsta.near_optimal):
-                    self.xx = [0.] * self.numvar
-                    task.getxx(mosek.soltype.bas, self.xx)
-                    result = {"x":self.xx}
-                    print("Optimal solution")
-                    return 0, result
+                    self.result["x"] = [0.] * self.numvar
+                    task.getxx(mosek.soltype.bas, self.result["x"])
+                    self.result["obj"] = task.getprimalobj(mosek.soltype.bas)
+                    self.result["code"] = 0
+                    self.result["msg"] = "Optimal solution"
                 elif (solsta == mosek.solsta.dual_infeas_cer or \
                       solsta == mosek.solsta.prim_infeas_cer or \
                       solsta == mosek.solsta.near_dual_infeas_cer or \
                       solsta == mosek.solsta.near_prim_infeas_cer):
-                    result = "Primal or dual infeasibility certificate found."
+                    self.result["msg"] = "Primal or dual infeasibility certificate found."
                 elif solsta == mosek.solsta.unknown:
-                    result = "Unknown solution status"
+                    self.result["msg"] = "Unknown solution status"
                 else:
-                    result = "Other solution status"
-                print(result)
-                return -1, result
+                    self.result["msg"] = "Other solution status"
+                print(self.result["msg"])
+                return self.result["code"], self.result
 
 
 def main():
@@ -129,7 +127,7 @@ def main():
     code, result = pro.fit()
 
     if code == 0:
-        print(result["x"])
+        print(result)
 
 if __name__ == '__main__':
     main()
