@@ -8,30 +8,32 @@ import mosek_g
 class mosek_quadraticp(object):
 
 	def __init__(self, params):
-	    self._INF = mosek_g.INF
-	    self.C_obj = params['C_obj']
-	    self.Q_obj = params['Q_obj']
-	    self.A_con = list(map(list, zip(*params['A_con'])))
-	    self.Q_con = params['Q_con']
-	    self.buc = params['buc']
-	    self.blc = params['blc']
-	    self.bux = params['bux']
-	    self.blx = params['blx']
-	    self.initial = params.get('initial', None)
-	    self.minimize = params.get('minimize', True)
-	    self.integ_index = params.get('integ_index', [])
-	    self.silent = params.get('silent', True)
-	    self.bkc = []
-	    self.bkx = []
-	    self.asub = []
-	    self.aval = []
-	    self.numcon = len(self.buc)
-	    self.numvar = len(self.bux)
-	    self.max_time = params.get('max_time', 60)
-	    self.qsubi = []
-	    self.qsubj = []
-	    self.qval = []
-	    self.result = {"x": None, "obj": None, "msg": "Do not finished.", "code":-1}
+		params = mosek_g.params_init(params)
+		self._INF = mosek_g.INF
+		self.C_obj = params['C_obj']
+		self.Q_obj = params.get('Q_obj', None)
+		self.A_con = params.get('A_con', None)
+		self.A_con = list(map(list, zip(*params['A_con'])))
+		self.Q_con = params.get('Q_con', None)
+		self.buc = params.get('buc', None)
+		self.blc = params.get('blc', None)
+		self.bux = params.get('bux', None)
+		self.blx = params.get('blx', None)
+		self.initial = params.get('initial', None)
+		self.minimize = params.get('minimize', True)
+		self.integ_index = params.get('integ_index', [])
+		self.silent = params.get('silent', True)
+		self.bkc = []
+		self.bkx = []
+		self.asub = []
+		self.aval = []
+		self.numcon = len(self.buc)
+		self.numvar = len(self.bux)
+		self.max_time = params.get('max_time', 60)
+		self.qsubi = []
+		self.qsubj = []
+		self.qval = []
+		self.result = {"x": None, "obj": None, "msg": "Do not finished.", "code":-1}
 
 	def streamprinter(self, text):
 	    sys.stdout.write(text)
@@ -64,51 +66,59 @@ class mosek_quadraticp(object):
 						self.bkx.append(mosek.boundkey.up)
 					elif i == j and i > -self._INF and j < self._INF:
 						self.bkx.append(mosek.boundkey.fx)
-
-				for A_vec in self.A_con:
-					asub_tmp = []
-					aval_tmp = []
-					for i, elm in enumerate(A_vec):
-						if elm != 0:
-							asub_tmp.append(i)
-							aval_tmp.append(float(elm))
-					self.asub.append(asub_tmp)
-					self.aval.append(aval_tmp)
+				if len(self.A_con) > 0:
+					for A_vec in self.A_con:
+						asub_tmp = []
+						aval_tmp = []
+						for i, elm in enumerate(A_vec):
+							if elm != 0:
+								asub_tmp.append(i)
+								aval_tmp.append(float(elm))
+						self.asub.append(asub_tmp)
+						self.aval.append(aval_tmp)
 
 				task.appendcons(self.numcon)
 				task.appendvars(self.numvar)
-
 				for i in range(self.numvar):
 					# Set the linear term c_i in the objective.
 					task.putcj(i, self.C_obj[i])
 
 					# Set the bounds on variable i
 					# blx[i] <= x_i <= bux[i]
+				
 					task.putbound(mosek.accmode.var, i, self.bkx[i], self.blx[i], self.bux[i])
-					# Input column i of A
-					task.putacol(i, self.asub[i], self.aval[i])
 
-				for i in range(self.numcon):
-				    task.putbound(mosek.accmode.con, i, self.bkc[i], self.blc[i], self.buc[i])
+					
+					# Input column i of A
+					
+					if len(self.A_con) > 0:
+						task.putacol(i, self.asub[i], self.aval[i])
+				if self.numcon>0:
+					for i in range(self.numcon):
+					    task.putbound(mosek.accmode.con, i, self.bkc[i], self.blc[i], self.buc[i])
 
 				# Set up and input quadratic objective
 				self.qsubi = []
 				self.qsubj = []
 				self.qval = []
-				for i in range(0, self.numvar):
-					for j in range(0, i + 1):
-						if abs(self.Q_obj[i][j]) >= mosek_g.EPS:
-							self.qsubi.append(i)
-							self.qsubj.append(j)
-							self.qval.append(self.Q_obj[i][j])
-				task.putqobj(self.qsubi, self.qsubj, self.qval)
-
+				if len(self.Q_obj)>0:
+					for i in range(0, self.numvar):
+						for j in range(0, i + 1):
+							if abs(self.Q_obj[i][j]) >= mosek_g.EPS:
+								self.qsubi.append(i)
+								self.qsubj.append(j)
+								self.qval.append(self.Q_obj[i][j])
+					task.putqobj(self.qsubi, self.qsubj, self.qval)
 				for k in range(0, self.numcon):
+					if self.Q_con is None or len(self.Q_con) == 0:
+						break
 					Q_con_k = self.Q_con[k]
+					if Q_con_k is None or len(Q_con_k)==0:
+						continue
 					self.qsubi = []
 					self.qsubj = []
 					self.qval = []
-					for i in range(0, self.numvar):
+					for i in range(0, len(Q_con_k)):
 						for j in range(0, i + 1):
 							if abs(Q_con_k[i][j]) >= mosek_g.EPS:
 								self.qsubi.append(i)

@@ -5,7 +5,9 @@ import mosek_g
 
 
 class mosek_linearp(object):
+
     def __init__(self, params):
+        params = mosek_g.params_init(params)
         self._INF = mosek_g.INF
         self.C_obj = params['C_obj']
         self.buc = params['buc']

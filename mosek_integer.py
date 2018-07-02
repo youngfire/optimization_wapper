@@ -7,7 +7,9 @@ import mosek_g
 
 
 class mosek_integerp(object):
+    
     def __init__(self, params):
+        params = mosek_g.params_init(params)
         self._INF = mosek_g.INF
         self.C_obj = params['C_obj']
         self.A_con = list(map(list, zip(*params['A_con'])))
