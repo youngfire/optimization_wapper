@@ -23,7 +23,7 @@ class mosek_linearp(object):
         self.aval = []
         self.numcon = len(self.buc)
         self.numvar = len(self.bux)
-        self.result = {"x": None, "obj": None, "msg": "Do not finished.", "code":-1}
+        self.result = {"x": None, "opti": None, "msg": "Do not finished.", "code":-1}
 
     def streamprinter(self, text):
         sys.stdout.write(text)
@@ -95,7 +95,7 @@ class mosek_linearp(object):
                 if (solsta == mosek.solsta.optimal or solsta == mosek.solsta.near_optimal):
                     self.result["x"] = [0.] * self.numvar
                     task.getxx(mosek.soltype.bas, self.result["x"])
-                    self.result["obj"] = task.getprimalobj(mosek.soltype.bas)
+                    self.result["opti"] = task.getprimalobj(mosek.soltype.bas)
                     self.result["code"] = 0
                     self.result["msg"] = "Optimal solution"
                 elif (solsta == mosek.solsta.dual_infeas_cer or \
@@ -122,7 +122,7 @@ def main():
               "blx"  : [0, 0, 0, 0], 
               "bux"  : [mosek_g.INF, 10, mosek_g.INF, mosek_g.INF], 
               "minimize" :False, 
-              "silent": False
+              "silent": True
             }
     pro = mosek_linearp(params)
 

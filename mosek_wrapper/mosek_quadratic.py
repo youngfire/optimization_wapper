@@ -33,7 +33,7 @@ class mosek_quadraticp(object):
 		self.qsubi = []
 		self.qsubj = []
 		self.qval = []
-		self.result = {"x": None, "obj": None, "msg": "Do not finished.", "code":-1}
+		self.result = {"x": None, "opti": None, "msg": "Do not finished.", "code":-1}
 
 	def streamprinter(self, text):
 	    sys.stdout.write(text)
@@ -131,9 +131,9 @@ class mosek_quadraticp(object):
 				    task.putobjsense(mosek.objsense.minimize)
 				else:
 				    task.putobjsense(mosek.objsense.maximize)
-
-
+				
 				task.optimize()
+
 				task.solutionsummary(mosek.streamtype.msg)
 				prosta = task.getprosta(mosek.soltype.itr)
 				solsta = task.getsolsta(mosek.soltype.itr)
@@ -141,7 +141,7 @@ class mosek_quadraticp(object):
 				if solsta == mosek.solsta.optimal or solsta == mosek.solsta.near_optimal:
 					self.result["x"] = [0.] * self.numvar
 					task.getxx(mosek.soltype.itr, self.result["x"])
-					self.result["obj"] = task.getprimalobj(mosek.soltype.itr)
+					self.result["opti"] = task.getprimalobj(mosek.soltype.itr)
 					self.result["code"] = 0
 					self.result["msg"] = "Optimal solution"
 				elif solsta == mosek.solsta.dual_infeas_cer:
@@ -177,7 +177,7 @@ def main():
               "blx"  : [0, 0, 0],
               "bux"  : [mosek_g.INF, mosek_g.INF, mosek_g.INF],
               "minimize" :True,
-              "silent": False
+              "silent": True
             }
     
 

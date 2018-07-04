@@ -28,7 +28,7 @@ class mosek_integerp(object):
         self.numcon = len(self.buc)
         self.numvar = len(self.bux)
         self.max_time = params.get('max_time', 60)
-        self.result = {"x": None, "obj": None, "msg": "Do not finished.", "code":-1}
+        self.result = {"x": None, "opti": None, "msg": "Do not finished.", "code":-1}
 
     def streamprinter(self, text):
         sys.stdout.write(text)
@@ -119,7 +119,7 @@ class mosek_integerp(object):
                 if solsta in [mosek.solsta.integer_optimal, mosek.solsta.near_integer_optimal]:
                     self.result["x"] = [0.] * self.numvar
                     task.getxx(mosek.soltype.itg, self.result["x"])
-                    self.result["obj"] = task.getprimalobj(mosek.soltype.itg)
+                    self.result["opti"] = task.getprimalobj(mosek.soltype.itg)
                     self.result["code"] = 0
                     self.result["msg"] = "Optimal solution"
                 elif solsta == mosek.solsta.dual_infeas_cer:
