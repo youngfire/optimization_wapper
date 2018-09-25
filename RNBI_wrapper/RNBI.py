@@ -237,7 +237,7 @@ class RNBI(object):
 			for i in range(self.dim):
 				for j in range(len(variables)):
 					y_tmp[i] += variables[j]*self.Y[i][j]
-			if self._distance(y_tmp, pts)> 0.01:
+			if self._distance(y_tmp, pts)> 0.00001:
 				del_pts.append(pts_i)
 		del_pts = del_pts[::-1]
 
